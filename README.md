@@ -6,6 +6,16 @@
 [![CI/CD](https://github.com/ELMANDOURIHAMZA/FinSight-AI/workflows/CI/CD%20Pipeline/badge.svg)](https://github.com/ELMANDOURIHAMZA/FinSight-AI/actions)
 
 > **🚀 Solution professionnelle d'analyse financière** alimentée par l'IA pour analyser les entreprises cotées en bourse, leurs rapports SEC 10-K et leurs données de marché en temps réel. **Interface intuitive, résultats précis, prêt pour la production.**
+ 
+ **Important — Framework principal : Flask**
+ 
+ L'application principale est une application **Flask** (point d'entrée `app.py`, script de démarrage `run_flask.py`). Démarrez localement avec :
+ 
+ ```bash
+ python run_flask.py
+ ```
+ 
+ Un tableau de bord Streamlit existe également sous `src/ui/dashboard.py` comme interface alternative ou version historique — il n'est pas utilisé par le serveur Flask par défaut.
 
 ## 🎯 Pourquoi FinSight AI ?
 
