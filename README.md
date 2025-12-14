@@ -101,7 +101,7 @@ FinSight AI est un système d'analyse financière avancé qui combine :
 
 ## 🚀 Démarrage Rapide
 
-### ⚡ Installation en 3 Étapes
+### ⚡ Installation en 3 Étapes (Flask — Windows inclus)
 
 1. **Cloner le projet**
    ```bash
@@ -112,17 +112,23 @@ FinSight AI est un système d'analyse financière avancé qui combine :
 2. **Installer les dépendances**
    ```bash
    python -m venv venv
-   source venv/bin/activate  # Windows: venv\Scripts\activate
+   # Windows
+   venv\Scripts\activate
+   # Unix/macOS
+   # source venv/bin/activate
    pip install -r requirements.txt
    ```
 
-3. **Configurer et lancer**
+3. **Configurer et lancer (Flask)**
    ```bash
    # Créer .env depuis env.template
-   cp env.template .env
-   # Éditer .env avec vos clés API
-   streamlit run src/ui/dashboard.py
+   copy env.template .env   # Windows
+   cp env.template .env     # Unix/macOS
+   # Éditez .env et ajoutez vos clés API (NE les committez PAS)
+   python run_flask.py
    ```
+
+Remarque: le projet est une application Flask (point d'entrée `app.py`, script `run_flask.py`). Un tableau de bord Streamlit existe dans `src/ui/dashboard.py` comme interface alternative ou version historique — il n'est pas démarré par défaut.
 
 ### 📋 Prérequis
 
@@ -156,7 +162,8 @@ pip install -r requirements.txt
 
 Créez un fichier `.env` à la racine du projet :
 ```bash
-cp env.template .env
+copy env.template .env   # Windows
+cp env.template .env     # Unix/macOS
 ```
 
 Éditez `.env` et ajoutez vos clés API :
@@ -166,6 +173,23 @@ ALPHA_VANTAGE_API_KEY=your_alpha_vantage_api_key_here
 LLM_MODEL=gemini-pro
 EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
 ```
+
+**Sécurité — gestion des clés API**
+
+- NE commitez JAMAIS votre fichier `.env` contenant des clés privées. Ce projet contient `.env` dans `.gitignore`, mais vérifiez si le fichier a été suivi par Git précédemment.
+- Pour vérifier si `.env` est suivi :
+   ```bash
+   git ls-files --error-unmatch .env && echo "tracked" || echo "not tracked"
+   ```
+- Si `.env` a été commité par erreur, retirez-le de l'index Git et poussez :
+   ```bash
+   git rm --cached .env
+   git commit -m "chore: remove .env from repo"
+   git push origin main
+   ```
+- Après avoir retiré un secret du repo, **révoquez et faites rotater** toutes les clés compromises (AlphaVantage, Gemini, etc.). Pour purger l'historique des secrets utilisez des outils comme [BFG Repo-Cleaner](https://rtyley.github.io/bfg-repo-cleaner/) ou `git filter-repo`.
+
+Si vous voulez, je peux vérifier pour vous si `.env` est suivi et vous aider à le purger de l'historique.
 
 5. **Créer les répertoires de données**
 ```bash
