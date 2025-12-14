@@ -1,0 +1,1013 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Marché - FinSight AI{% endblock %}
+
+{% block content %}
+<!-- Page Header with Ticker -->
+<div class="page-header">
+    <div class="header-content">
+        
+        <div class="ticker-display">
+            <span class="ticker-label">Symbole:</span>
+            <span class="ticker-symbol" id="ticker-display">{{ ticker or 'AAPL' }}</span>
+        </div>
+    </div>
+    
+</div>
+
+<!-- Filters -->
+
+
+<!-- Metrics Cards -->
+<div id="metrics-container" class="metrics-grid">
+    <!-- Metrics will be loaded here -->
+</div>
+
+<!-- Chart Tabs -->
+<div class="chart-tabs">
+    <button class="tab-btn active" onclick="showChartTab('price')">📈 Prix & Tendances</button>
+    <button class="tab-btn" onclick="showChartTab('volume')">📊 Volume</button>
+    <button class="tab-btn" onclick="showChartTab('rsi')">📉 RSI</button>
+</div>
+
+<!-- Chart Containers -->
+<div id="chart-container" class="chart-container">
+    <!-- Price Chart -->
+    <div id="price-chart" class="chart-tab-content active">
+        <div class="chart-description">
+            <div class="description-header">
+                <h3>📈 Graphique des Prix et Tendances</h3>
+                <button class="description-toggle" onclick="toggleDescription('price-desc')">ℹ️ Aide</button>
+            </div>
+            <div id="price-desc" class="description-content" style="display: none;">
+                <div class="description-text">
+                    <h4>🎯 Qu'est-ce que ce graphique montre ?</h4>
+                    <p>Ce graphique vous montre <strong>l'évolution du prix de l'action</strong> au fil du temps. Imaginez que vous suivez le prix d'un produit dans un magasin : certains jours il coûte plus cher, d'autres jours moins cher. C'est exactement la même chose pour les actions en bourse !</p>
+                    
+                    <h4>📊 Que signifient les lignes ?</h4>
+                    <ul>
+                        <li><strong>Ligne bleue (Prix de Clôture)</strong> : C'est le prix auquel l'action s'est vendue à la fin de chaque jour. C'est comme le prix final d'un produit à la fin de la journée.</li>
+                        <li><strong>Ligne orange pointillée (SMA 20)</strong> : C'est la <strong>moyenne des prix sur 20 jours</strong>. Si le prix actuel est au-dessus de cette ligne, cela signifie généralement que l'action se porte bien récemment. C'est comme comparer le prix d'aujourd'hui avec la moyenne des 20 derniers jours.</li>
+                        <li><strong>Ligne violette (SMA 50)</strong> : C'est la <strong>moyenne des prix sur 50 jours</strong>. C'est une tendance plus longue. Si le prix est au-dessus de cette ligne, c'est un bon signe sur le long terme.</li>
+                    </ul>
+                    
+                    <h4>💡 Comment l'interpréter ?</h4>
+                    <ul>
+                        <li><strong>Ligne qui monte</strong> = L'action prend de la valeur, c'est généralement bon signe</li>
+                        <li><strong>Ligne qui descend</strong> = L'action perd de la valeur, il faut être prudent</li>
+                        <li><strong>Prix au-dessus des lignes orange/violette</strong> = Tendance positive, l'action se porte bien</li>
+                        <li><strong>Prix en-dessous des lignes</strong> = Tendance négative, l'action peut être en difficulté</li>
+                    </ul>
+                    
+                    <p><strong>💼 Exemple concret :</strong> Si vous voyez une ligne bleue qui monte régulièrement et qui reste au-dessus des lignes orange et violette, c'est comme si un produit devenait de plus en plus populaire et cher - c'est généralement un bon signe pour l'entreprise !</p>
+                </div>
+            </div>
+        </div>
+        <div id="price-chart-plot"></div>
+    </div>
+    
+    <!-- Volume Chart -->
+    <div id="volume-chart" class="chart-tab-content">
+        <div class="chart-description">
+            <div class="description-header">
+                <h3>📊 Graphique du Volume de Transactions</h3>
+                <button class="description-toggle" onclick="toggleDescription('volume-desc')">ℹ️ Aide</button>
+            </div>
+            <div id="volume-desc" class="description-content" style="display: none;">
+                <div class="description-text">
+                    <h4>🎯 Qu'est-ce que ce graphique montre ?</h4>
+                    <p>Ce graphique vous montre <strong>combien d'actions ont été achetées et vendues</strong> chaque jour. C'est comme regarder combien de personnes sont entrées dans un magasin chaque jour - plus il y a de monde, plus il y a d'activité !</p>
+                    
+                    <h4>📊 Que signifient les barres ?</h4>
+                    <ul>
+                        <li><strong>Barres vertes</strong> : Le prix a augmenté ce jour-là (plus de personnes ont acheté qu'elles n'ont vendu). C'est comme si le magasin avait une bonne journée de ventes.</li>
+                        <li><strong>Barres rouges</strong> : Le prix a baissé ce jour-là (plus de personnes ont vendu qu'elles n'ont acheté). C'est comme si le magasin avait une mauvaise journée.</li>
+                        <li><strong>Hauteur de la barre</strong> : Plus la barre est haute, plus il y a eu de transactions ce jour-là. Une barre très haute signifie beaucoup d'activité - beaucoup de personnes ont acheté ou vendu.</li>
+                    </ul>
+                    
+                    <h4>💡 Pourquoi c'est important ?</h4>
+                    <ul>
+                        <li><strong>Volume élevé + Prix qui monte</strong> = Beaucoup de personnes achètent, c'est un très bon signe ! C'est comme si un produit devenait très populaire.</li>
+                        <li><strong>Volume élevé + Prix qui descend</strong> = Beaucoup de personnes vendent, il faut être prudent. C'est comme si tout le monde voulait se débarrasser du produit.</li>
+                        <li><strong>Volume faible</strong> = Peu d'activité, les gens ne s'intéressent pas beaucoup à cette action pour le moment.</li>
+                    </ul>
+                    
+                    <p><strong>💼 Exemple concret :</strong> Imaginez que vous voyez une très grande barre verte - cela signifie que beaucoup de personnes ont acheté l'action et que le prix a augmenté. C'est comme si un magasin avait une journée exceptionnelle avec beaucoup de clients heureux !</p>
+                </div>
+            </div>
+        </div>
+        <div id="volume-chart-plot"></div>
+    </div>
+    
+    <!-- RSI Chart -->
+    <div id="rsi-chart" class="chart-tab-content">
+        <div class="chart-description">
+            <div class="description-header">
+                <h3>📉 Indicateur RSI (Relative Strength Index)</h3>
+                <button class="description-toggle" onclick="toggleDescription('rsi-desc')">ℹ️ Aide</button>
+            </div>
+            <div id="rsi-desc" class="description-content" style="display: none;">
+                <div class="description-text">
+                    <h4>🎯 Qu'est-ce que le RSI ?</h4>
+                    <p>Le RSI est un <strong>indicateur qui mesure si une action est "trop chère" ou "trop bon marché"</strong>. C'est comme un thermomètre qui vous dit si quelque chose est trop chaud ou trop froid !</p>
+                    
+                    <h4>📊 Comment ça fonctionne ?</h4>
+                    <p>Le RSI est un nombre entre 0 et 100 :</p>
+                    <ul>
+                        <li><strong>Au-dessus de 70 (ligne rouge)</strong> : L'action est considérée comme <strong>"surachetée"</strong> - elle est peut-être trop chère et pourrait baisser bientôt. C'est comme si un produit était devenu si populaire que son prix est devenu trop élevé.</li>
+                        <li><strong>En-dessous de 30 (ligne verte)</strong> : L'action est considérée comme <strong>"survendue"</strong> - elle est peut-être trop bon marché et pourrait remonter bientôt. C'est comme si un produit était en solde et pourrait reprendre de la valeur.</li>
+                        <li><strong>Entre 30 et 70</strong> : L'action est dans une zone "normale", ni trop chère ni trop bon marché.</li>
+                    </ul>
+                    
+                    <h4>💡 Comment l'utiliser ?</h4>
+                    <ul>
+                        <li><strong>RSI au-dessus de 70</strong> = Attention ! L'action est peut-être trop chère, le prix pourrait baisser. C'est comme un signal d'alarme qui dit "attention, ça devient cher !"</li>
+                        <li><strong>RSI en-dessous de 30</strong> = Opportunité ! L'action est peut-être sous-évaluée, le prix pourrait remonter. C'est comme voir un produit en solde qui pourrait reprendre de la valeur.</li>
+                        <li><strong>RSI autour de 50</strong> = Zone neutre, pas de signal particulier.</li>
+                    </ul>
+                    
+                    <p><strong>⚠️ Important :</strong> Le RSI est un outil d'aide, pas une garantie ! C'est comme un indicateur de température - il vous donne une idée, mais il ne prédit pas l'avenir avec certitude.</p>
+                    
+                    <p><strong>💼 Exemple concret :</strong> Si vous voyez le RSI monter au-dessus de 70, c'est comme si un thermomètre indiquait "trop chaud" - l'action est peut-être devenue trop chère et pourrait se refroidir (baisser) bientôt. À l'inverse, si le RSI descend en-dessous de 30, c'est comme si le thermomètre indiquait "trop froid" - l'action est peut-être devenue trop bon marché et pourrait se réchauffer (remonter) bientôt.</p>
+                </div>
+            </div>
+        </div>
+        <div id="rsi-chart-plot"></div>
+    </div>
+    
+    <!-- Overview Chart -->
+    <div id="overview-chart" class="chart-tab-content">
+        <div class="chart-description">
+            <div class="description-header">
+                <h3>📋 Vue d'Ensemble - Analyse Technique Complète</h3>
+                <button class="description-toggle" onclick="toggleDescription('overview-desc')">ℹ️ Aide</button>
+            </div>
+            <div id="overview-desc" class="description-content" style="display: none;">
+                <div class="description-text">
+                    <h4>🎯 Qu'est-ce que ce graphique montre ?</h4>
+                    <p>Ce graphique combine <strong>toutes les informations importantes en un seul coup d'œil</strong> ! C'est comme un tableau de bord qui vous montre tout ce que vous devez savoir sur l'action : son prix, son activité (volume) et si elle est trop chère ou trop bon marché (RSI).</p>
+                    
+                    <h4>📊 Les 3 sections du graphique :</h4>
+                    <ol>
+                        <li><strong>Section du haut (Prix)</strong> : Vous voyez l'évolution du prix avec les moyennes. C'est la partie la plus importante - elle vous montre si l'action prend ou perd de la valeur.</li>
+                        <li><strong>Section du milieu (Volume)</strong> : Vous voyez combien d'actions ont été échangées. Plus les barres sont hautes, plus il y a eu d'activité ce jour-là.</li>
+                        <li><strong>Section du bas (RSI)</strong> : Vous voyez si l'action est trop chère (au-dessus de 70) ou trop bon marché (en-dessous de 30).</li>
+                    </ol>
+                    
+                    <h4>💡 Comment analyser ce graphique ?</h4>
+                    <p><strong>Scénario idéal (bon signe) :</strong></p>
+                    <ul>
+                        <li>✅ Prix qui monte (ligne bleue qui va vers le haut)</li>
+                        <li>✅ Prix au-dessus des lignes orange et violette (moyennes)</li>
+                        <li>✅ Volume élevé avec barres vertes (beaucoup d'achats)</li>
+                        <li>✅ RSI entre 30 et 70 (ni trop cher ni trop bon marché)</li>
+                    </ul>
+                    
+                    <p><strong>Scénario préoccupant (attention) :</strong></p>
+                    <ul>
+                        <li>⚠️ Prix qui descend (ligne bleue qui va vers le bas)</li>
+                        <li>⚠️ Prix en-dessous des lignes orange et violette</li>
+                        <li>⚠️ Volume élevé avec barres rouges (beaucoup de ventes)</li>
+                        <li>⚠️ RSI au-dessus de 70 (trop cher) ou en-dessous de 30 (trop bon marché)</li>
+                    </ul>
+                    
+                    <h4>🔍 Comment utiliser ce graphique ?</h4>
+                    <p>Regardez les <strong>3 sections ensemble</strong> pour avoir une vue complète :</p>
+                    <ul>
+                        <li>Si le prix monte ET le volume est élevé ET le RSI est normal = <strong>Très bon signe !</strong></li>
+                        <li>Si le prix descend ET le volume est élevé ET le RSI est au-dessus de 70 = <strong>Attention, l'action pourrait continuer à baisser</strong></li>
+                        <li>Si le prix monte mais le volume est faible = <strong>La hausse pourrait ne pas durer</strong></li>
+                    </ul>
+                    
+                    <p><strong>💼 Exemple concret :</strong> Imaginez que vous voyez :</p>
+                    <ul>
+                        <li>Le prix monte régulièrement (section du haut)</li>
+                        <li>Beaucoup de barres vertes hautes (section du milieu) - beaucoup de personnes achètent</li>
+                        <li>Le RSI autour de 50 (section du bas) - ni trop cher ni trop bon marché</li>
+                    </ul>
+                    <p>C'est comme voir un magasin avec beaucoup de clients heureux, des ventes en hausse, et des prix raisonnables - c'est généralement un très bon signe pour l'entreprise !</p>
+                </div>
+            </div>
+        </div>
+        <div id="overview-chart-plot"></div>
+    </div>
+</div>
+
+<!-- Company Info -->
+<div id="company-info" class="company-info-section">
+    <!-- Company info will be loaded here -->
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ticker = '{{ ticker or "AAPL" }}';
+
+// Load data when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    if (ticker) {
+        // Load quote and overview
+        Promise.all([
+            fetch(`/api/quote/${ticker}`),
+            fetch(`/api/overview/${ticker}`)
+        ]).then(([quoteRes, overviewRes]) => {
+            return Promise.all([quoteRes.json(), overviewRes.json()]);
+        }).then(([quote, overview]) => {
+            // Update ticker display
+            document.getElementById('ticker-display').textContent = ticker;
+            
+            // Display metrics (this also updates descriptions)
+            displayMetrics(quote, overview);
+            
+            // Display company info
+            displayCompanyInfo(overview);
+            
+            // Load charts
+            loadCharts(ticker, 'all');
+        }).catch(error => {
+            console.error('Error loading dashboard data:', error);
+        });
+    }
+});
+
+// Store company data globally for descriptions
+let companyData = {
+    name: '',
+    sector: '',
+    industry: '',
+    currentPrice: 0,
+    changePercent: '0%',
+    marketCap: '',
+    peRatio: 'N/A'
+};
+
+function displayMetrics(quote, overview) {
+    const container = document.getElementById('metrics-container');
+    const changeValue = quote.change || 0;
+    const changePercent = quote.change_percent || '0%';
+    const changeColor = parseFloat(changePercent.replace('%', '').replace('+', '')) >= 0 ? '#38A169' : '#E53E3E';
+    
+    const marketCap = formatMarketCap(overview.market_cap);
+    const peRatio = overview.pe_ratio || 'N/A';
+    const dividend = overview.dividend_yield || 'N/A';
+    
+    // Store company data for dynamic descriptions
+    companyData = {
+        name: overview.name || ticker,
+        sector: overview.sector || 'Non spécifié',
+        industry: overview.industry || 'Non spécifié',
+        currentPrice: parseFloat(quote.price) || 0,
+        changePercent: changePercent,
+        marketCap: marketCap,
+        peRatio: peRatio
+    };
+    
+    // Update descriptions with company-specific data
+    updateDescriptions();
+    
+    container.innerHTML = `
+        <div class="metric-card">
+            <div class="metric-icon" style="background: #EBF8FF; color: #3182CE;">💰</div>
+            <div class="metric-content">
+                <div class="metric-label">Prix Actuel</div>
+                <div class="metric-value">$${parseFloat(quote.price).toFixed(2)}</div>
+                <div class="metric-delta" style="color: ${changeColor};">${changeValue.toFixed(2)} (${changePercent})</div>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-icon" style="background: #F0FFF4; color: #38A169;">🏢</div>
+            <div class="metric-content">
+                <div class="metric-label">Capitalisation</div>
+                <div class="metric-value">${marketCap}</div>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-icon" style="background: #FFFAF0; color: #DD6B20;">📈</div>
+            <div class="metric-content">
+                <div class="metric-label">Ratio P/E</div>
+                <div class="metric-value">${peRatio}</div>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-icon" style="background: #FEF5E7; color: #F6AD55;">💵</div>
+            <div class="metric-content">
+                <div class="metric-label">Rendement Dividende</div>
+                <div class="metric-value">${dividend}</div>
+            </div>
+        </div>
+    `;
+}
+
+function updateDescriptions() {
+    const companyName = companyData.name;
+    const sector = companyData.sector;
+    const industry = companyData.industry;
+    const currentPrice = companyData.currentPrice.toFixed(2);
+    const changePercent = companyData.changePercent;
+    const isPositive = parseFloat(changePercent.replace('%', '').replace('+', '')) >= 0;
+    const priceTrend = isPositive ? 'augmente' : 'diminue';
+    const trendEmoji = isPositive ? '📈' : '📉';
+    
+    // Update price chart description
+    const priceDesc = document.getElementById('price-desc');
+    if (priceDesc) {
+        priceDesc.querySelector('.description-text').innerHTML = `
+            <h4>🎯 Qu'est-ce que ce graphique montre pour ${companyName} ?</h4>
+            <p>Ce graphique vous montre <strong>l'évolution du prix de l'action ${ticker}</strong> au fil du temps. ${companyName} opère dans le secteur <strong>${sector}</strong> (${industry}).</p>
+            <p>Actuellement, l'action ${ticker} vaut <strong>$${currentPrice}</strong> et ${priceTrend} de <strong>${changePercent}</strong> ${trendEmoji}</p>
+            
+            <h4>📊 Que signifient les lignes ?</h4>
+            <ul>
+                <li><strong>Ligne bleue (Prix de Clôture)</strong> : C'est le prix auquel l'action ${ticker} s'est vendue à la fin de chaque jour. Actuellement à <strong>$${currentPrice}</strong>, cette ligne vous montre si ${companyName} prend ou perd de la valeur.</li>
+                <li><strong>Ligne orange pointillée (SMA 20)</strong> : C'est la <strong>moyenne des prix sur 20 jours</strong> pour ${ticker}. Si le prix actuel ($${currentPrice}) est au-dessus de cette ligne, cela signifie généralement que l'action se porte bien récemment. C'est comme comparer le prix d'aujourd'hui avec la moyenne des 20 derniers jours.</li>
+                <li><strong>Ligne violette (SMA 50)</strong> : C'est la <strong>moyenne des prix sur 50 jours</strong> pour ${ticker}. C'est une tendance plus longue. Si le prix est au-dessus de cette ligne, c'est un bon signe sur le long terme pour ${companyName}.</li>
+            </ul>
+            
+            <h4>💡 Comment l'interpréter pour ${companyName} ?</h4>
+            <ul>
+                <li><strong>Ligne qui monte</strong> = L'action ${ticker} prend de la valeur, c'est généralement bon signe pour ${companyName}</li>
+                <li><strong>Ligne qui descend</strong> = L'action ${ticker} perd de la valeur, il faut être prudent</li>
+                <li><strong>Prix au-dessus des lignes orange/violette</strong> = Tendance positive, ${companyName} se porte bien</li>
+                <li><strong>Prix en-dessous des lignes</strong> = Tendance négative, ${companyName} peut être en difficulté</li>
+            </ul>
+            
+            <p><strong>💼 Contexte de ${companyName} :</strong> En tant qu'entreprise du secteur ${sector}, ${companyName} est influencée par les tendances de ce marché. Si vous voyez une ligne bleue qui monte régulièrement et qui reste au-dessus des lignes orange et violette, c'est comme si ${companyName} devenait de plus en plus populaire et performante - c'est généralement un bon signe !</p>
+        `;
+    }
+    
+    // Update volume chart description
+    const volumeDesc = document.getElementById('volume-desc');
+    if (volumeDesc) {
+        volumeDesc.querySelector('.description-text').innerHTML = `
+            <h4>🎯 Qu'est-ce que ce graphique montre pour ${companyName} ?</h4>
+            <p>Ce graphique vous montre <strong>combien d'actions ${ticker} ont été achetées et vendues</strong> chaque jour. C'est comme regarder combien de personnes sont intéressées par ${companyName} chaque jour - plus il y a d'activité, plus il y a d'intérêt pour cette entreprise !</p>
+            
+            <h4>📊 Que signifient les barres pour ${ticker} ?</h4>
+            <ul>
+                <li><strong>Barres vertes</strong> : Le prix de ${ticker} a augmenté ce jour-là (plus de personnes ont acheté qu'elles n'ont vendu). C'est comme si ${companyName} avait une bonne journée de ventes d'actions.</li>
+                <li><strong>Barres rouges</strong> : Le prix de ${ticker} a baissé ce jour-là (plus de personnes ont vendu qu'elles n'ont acheté). C'est comme si ${companyName} avait une mauvaise journée.</li>
+                <li><strong>Hauteur de la barre</strong> : Plus la barre est haute, plus il y a eu de transactions ce jour-là pour ${ticker}. Une barre très haute signifie beaucoup d'activité - beaucoup de personnes ont acheté ou vendu des actions de ${companyName}.</li>
+            </ul>
+            
+            <h4>💡 Pourquoi c'est important pour ${companyName} ?</h4>
+            <ul>
+                <li><strong>Volume élevé + Prix qui monte</strong> = Beaucoup de personnes achètent ${ticker}, c'est un très bon signe pour ${companyName} ! C'est comme si l'entreprise devenait très populaire.</li>
+                <li><strong>Volume élevé + Prix qui descend</strong> = Beaucoup de personnes vendent ${ticker}, il faut être prudent. C'est comme si les investisseurs perdaient confiance en ${companyName}.</li>
+                <li><strong>Volume faible</strong> = Peu d'activité, les gens ne s'intéressent pas beaucoup à ${ticker} pour le moment. Cela peut être normal pour une entreprise du secteur ${sector}.</li>
+            </ul>
+            
+            <p><strong>💼 Exemple concret pour ${companyName} :</strong> Imaginez que vous voyez une très grande barre verte - cela signifie que beaucoup de personnes ont acheté ${ticker} et que le prix a augmenté. C'est comme si ${companyName} avait une journée exceptionnelle avec beaucoup d'investisseurs heureux !</p>
+        `;
+    }
+    
+    // Update RSI chart description
+    const rsiDesc = document.getElementById('rsi-desc');
+    if (rsiDesc) {
+        rsiDesc.querySelector('.description-text').innerHTML = `
+            <h4>🎯 Qu'est-ce que le RSI pour ${companyName} ?</h4>
+            <p>Le RSI est un <strong>indicateur qui mesure si l'action ${ticker} est "trop chère" ou "trop bon marché"</strong>. C'est comme un thermomètre qui vous dit si ${companyName} est surévaluée ou sous-évaluée !</p>
+            
+            <h4>📊 Comment ça fonctionne pour ${ticker} ?</h4>
+            <p>Le RSI est un nombre entre 0 et 100 :</p>
+            <ul>
+                <li><strong>Au-dessus de 70 (ligne rouge)</strong> : L'action ${ticker} est considérée comme <strong>"surachetée"</strong> - elle est peut-être trop chère et pourrait baisser bientôt. C'est comme si ${companyName} était devenue si populaire que son prix est devenu trop élevé.</li>
+                <li><strong>En-dessous de 30 (ligne verte)</strong> : L'action ${ticker} est considérée comme <strong>"survendue"</strong> - elle est peut-être trop bon marché et pourrait remonter bientôt. C'est comme si ${companyName} était en solde et pourrait reprendre de la valeur.</li>
+                <li><strong>Entre 30 et 70</strong> : L'action ${ticker} est dans une zone "normale", ni trop chère ni trop bon marché pour ${companyName}.</li>
+            </ul>
+            
+            <h4>💡 Comment l'utiliser pour ${ticker} ?</h4>
+            <ul>
+                <li><strong>RSI au-dessus de 70</strong> = Attention ! L'action ${ticker} est peut-être trop chère, le prix pourrait baisser. C'est comme un signal d'alarme qui dit "attention, ${companyName} devient cher !"</li>
+                <li><strong>RSI en-dessous de 30</strong> = Opportunité ! L'action ${ticker} est peut-être sous-évaluée, le prix pourrait remonter. C'est comme voir ${companyName} en solde qui pourrait reprendre de la value.</li>
+                <li><strong>RSI autour de 50</strong> = Zone neutre, pas de signal particulier pour ${companyName}.</li>
+            </ul>
+            
+            <p><strong>⚠️ Important :</strong> Le RSI est un outil d'aide, pas une garantie ! C'est comme un indicateur de température - il vous donne une idée, mais il ne prédit pas l'avenir avec certitude pour ${companyName}.</p>
+            
+            <p><strong>💼 Exemple concret pour ${companyName} :</strong> Si vous voyez le RSI de ${ticker} monter au-dessus de 70, c'est comme si un thermomètre indiquait "trop chaud" - l'action est peut-être devenue trop chère et pourrait se refroidir (baisser) bientôt. À l'inverse, si le RSI descend en-dessous de 30, c'est comme si le thermomètre indiquait "trop froid" - ${companyName} est peut-être devenue trop bon marché et pourrait se réchauffer (remonter) bientôt.</p>
+        `;
+    }
+    
+    // Update overview chart description
+    const overviewDesc = document.getElementById('overview-desc');
+    if (overviewDesc) {
+        overviewDesc.querySelector('.description-text').innerHTML = `
+            <h4>🎯 Qu'est-ce que ce graphique montre pour ${companyName} ?</h4>
+            <p>Ce graphique combine <strong>toutes les informations importantes sur ${ticker} en un seul coup d'œil</strong> ! C'est comme un tableau de bord qui vous montre tout ce que vous devez savoir sur l'action de ${companyName} : son prix (actuellement $${currentPrice}), son activité (volume) et si elle est trop chère ou trop bon marché (RSI).</p>
+            
+            <h4>📊 Les 3 sections du graphique pour ${ticker} :</h4>
+            <ol>
+                <li><strong>Section du haut (Prix)</strong> : Vous voyez l'évolution du prix de ${ticker} avec les moyennes. C'est la partie la plus importante - elle vous montre si ${companyName} prend ou perd de la valeur. Actuellement, le prix ${priceTrend} de ${changePercent}.</li>
+                <li><strong>Section du milieu (Volume)</strong> : Vous voyez combien d'actions ${ticker} ont été échangées. Plus les barres sont hautes, plus il y a eu d'activité ce jour-là pour ${companyName}.</li>
+                <li><strong>Section du bas (RSI)</strong> : Vous voyez si ${ticker} est trop chère (au-dessus de 70) ou trop bon marché (en-dessous de 30) pour ${companyName}.</li>
+            </ol>
+            
+            <h4>💡 Comment analyser ce graphique pour ${companyName} ?</h4>
+            <p><strong>Scénario idéal (bon signe pour ${companyName}) :</strong></p>
+            <ul>
+                <li>✅ Prix de ${ticker} qui monte (ligne bleue qui va vers le haut)</li>
+                <li>✅ Prix au-dessus des lignes orange et violette (moyennes)</li>
+                <li>✅ Volume élevé avec barres vertes (beaucoup d'achats d'actions ${ticker})</li>
+                <li>✅ RSI entre 30 et 70 (ni trop cher ni trop bon marché pour ${companyName})</li>
+            </ul>
+            
+            <p><strong>Scénario préoccupant (attention pour ${companyName}) :</strong></p>
+            <ul>
+                <li>⚠️ Prix de ${ticker} qui descend (ligne bleue qui va vers le bas)</li>
+                <li>⚠️ Prix en-dessous des lignes orange et violette</li>
+                <li>⚠️ Volume élevé avec barres rouges (beaucoup de ventes d'actions ${ticker})</li>
+                <li>⚠️ RSI au-dessus de 70 (trop cher) ou en-dessous de 30 (trop bon marché)</li>
+            </ul>
+            
+            <h4>🔍 Comment utiliser ce graphique pour ${companyName} ?</h4>
+            <p>Regardez les <strong>3 sections ensemble</strong> pour avoir une vue complète de ${ticker} :</p>
+            <ul>
+                <li>Si le prix monte ET le volume est élevé ET le RSI est normal = <strong>Très bon signe pour ${companyName} !</strong></li>
+                <li>Si le prix descend ET le volume est élevé ET le RSI est au-dessus de 70 = <strong>Attention, ${ticker} pourrait continuer à baisser</strong></li>
+                <li>Si le prix monte mais le volume est faible = <strong>La hausse pourrait ne pas durer pour ${companyName}</strong></li>
+            </ul>
+            
+            <p><strong>💼 Exemple concret pour ${companyName} (${sector}) :</strong> Imaginez que vous voyez :</p>
+            <ul>
+                <li>Le prix de ${ticker} monte régulièrement (section du haut) - ${companyName} prend de la valeur</li>
+                <li>Beaucoup de barres vertes hautes (section du milieu) - beaucoup de personnes achètent ${ticker}</li>
+                <li>Le RSI autour de 50 (section du bas) - ni trop cher ni trop bon marché</li>
+            </ul>
+            <p>C'est comme voir ${companyName} avec beaucoup d'investisseurs heureux, des ventes d'actions en hausse, et des prix raisonnables - c'est généralement un très bon signe pour cette entreprise du secteur ${sector} !</p>
+        `;
+    }
+}
+
+function formatMarketCap(value) {
+    if (!value) return 'N/A';
+    const num = parseInt(value);
+    if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
+    if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
+    return `$${num.toLocaleString()}`;
+}
+
+function displayCompanyInfo(overview) {
+    const container = document.getElementById('company-info');
+    container.innerHTML = `
+        <div class="info-card">
+            <h3>Informations sur l'Entreprise</h3>
+            <div class="info-grid">
+                <div>
+                    <strong>Nom:</strong> ${overview.name || 'N/A'}<br>
+                    <strong>Secteur:</strong> ${overview.sector || 'N/A'}<br>
+                    <strong>Industrie:</strong> ${overview.industry || 'N/A'}
+                </div>
+                <div>
+                    <strong>52W High:</strong> $${overview['52_week_high'] || 'N/A'}<br>
+                    <strong>52W Low:</strong> $${overview['52_week_low'] || 'N/A'}<br>
+                    <strong>Beta:</strong> ${overview.beta || 'N/A'}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+
+function createPriceChart(data) {
+    const trace1 = {
+        x: data.dates,
+        y: data.close,
+        name: 'Prix de Clôture',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#3182CE', width: 2.5 },
+        fill: 'tozeroy',
+        fillcolor: 'rgba(49, 130, 206, 0.08)'
+    };
+    
+    const trace2 = {
+        x: data.dates,
+        y: data.sma_20,
+        name: 'SMA 20',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#DD6B20', width: 2, dash: 'dot' }
+    };
+    
+    const trace3 = {
+        x: data.dates,
+        y: data.sma_50,
+        name: 'SMA 50',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#805AD5', width: 2, dash: 'dash' }
+    };
+    
+    const layout = {
+        title: `${ticker} - Évolution du Prix`,
+        plot_bgcolor: '#FFFFFF',
+        paper_bgcolor: '#FFFFFF',
+        font: { family: 'Inter, sans-serif', size: 12, color: '#4A5568' },
+        xaxis: { title: 'Date', gridcolor: '#E2E8F0' },
+        yaxis: { title: 'Prix ($)', gridcolor: '#E2E8F0' },
+        hovermode: 'x unified',
+        margin: { l: 60, r: 40, t: 60, b: 60 }
+    };
+    
+    Plotly.newPlot('price-chart-plot', [trace1, trace2, trace3], layout, {responsive: true});
+}
+
+function createVolumeChart(data) {
+    const colors = data.close.map((close, i) => 
+        close < data.open[i] ? '#E53E3E' : '#38A169'
+    );
+    
+    const trace = {
+        x: data.dates,
+        y: data.volume,
+        name: 'Volume',
+        type: 'bar',
+        marker: { color: colors, opacity: 0.7 }
+    };
+    
+    const layout = {
+        title: `${ticker} - Volume de Transactions`,
+        plot_bgcolor: '#FFFFFF',
+        paper_bgcolor: '#FFFFFF',
+        font: { family: 'Inter, sans-serif', size: 12, color: '#4A5568' },
+        xaxis: { title: 'Date', gridcolor: '#E2E8F0' },
+        yaxis: { title: 'Volume', gridcolor: '#E2E8F0' },
+        hovermode: 'x unified',
+        margin: { l: 60, r: 40, t: 60, b: 60 }
+    };
+    
+    Plotly.newPlot('volume-chart-plot', [trace], layout, {responsive: true});
+}
+
+function createRSIChart(data) {
+    const trace = {
+        x: data.dates,
+        y: data.rsi,
+        name: 'RSI',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#3182CE', width: 2.5 },
+        fill: 'tozeroy',
+        fillcolor: 'rgba(49, 130, 206, 0.08)'
+    };
+    
+    const layout = {
+        title: `${ticker} - Indicateur RSI`,
+        plot_bgcolor: '#FFFFFF',
+        paper_bgcolor: '#FFFFFF',
+        font: { family: 'Inter, sans-serif', size: 12, color: '#4A5568' },
+        xaxis: { title: 'Date', gridcolor: '#E2E8F0' },
+        yaxis: { title: 'RSI', range: [0, 100], gridcolor: '#E2E8F0' },
+        shapes: [
+            { type: 'line', x0: 0, x1: 1, y0: 70, y1: 70, xref: 'paper', yref: 'y', line: { color: '#E53E3E', width: 2, dash: 'dash' } },
+            { type: 'line', x0: 0, x1: 1, y0: 30, y1: 30, xref: 'paper', yref: 'y', line: { color: '#38A169', width: 2, dash: 'dash' } }
+        ],
+        annotations: [
+            { x: data.dates[data.dates.length - 1], y: 70, text: 'Surachat (70)', showarrow: false, xanchor: 'right', font: { color: '#E53E3E' } },
+            { x: data.dates[data.dates.length - 1], y: 30, text: 'Survente (30)', showarrow: false, xanchor: 'right', font: { color: '#38A169' } }
+        ],
+        hovermode: 'x unified',
+        margin: { l: 60, r: 40, t: 60, b: 60 }
+    };
+    
+    Plotly.newPlot('rsi-chart-plot', [trace], layout, {responsive: true});
+}
+
+function createOverviewChart(priceData, timeseriesData, rsiData) {
+    // Create subplots for better readability
+    const fig = {
+        data: [],
+        layout: {
+            title: {
+                text: `${ticker} - Analyse Technique Complète`,
+                font: { family: 'Inter, sans-serif', size: 18, color: '#1A202C' },
+                x: 0,
+                xanchor: 'left'
+            },
+            grid: { rows: 3, columns: 1, pattern: 'independent', roworder: 'top to bottom' },
+            plot_bgcolor: '#FFFFFF',
+            paper_bgcolor: '#FFFFFF',
+            font: { family: 'Inter, sans-serif', size: 12, color: '#4A5568' },
+            hovermode: 'x unified',
+            margin: { l: 60, r: 40, t: 100, b: 80 },
+            showlegend: true,
+            legend: {
+                orientation: 'h',
+                y: -0.15,
+                x: 0.5,
+                xanchor: 'center',
+                font: { family: 'Inter, sans-serif', size: 11, color: '#4A5568' }
+            }
+        }
+    };
+    
+    // Price Chart (Top - 50% height)
+    const priceTrace = {
+        x: priceData.dates,
+        y: priceData.close,
+        name: 'Prix de Clôture',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#3182CE', width: 2.5 },
+        fill: 'tozeroy',
+        fillcolor: 'rgba(49, 130, 206, 0.08)',
+        xaxis: 'x',
+        yaxis: 'y',
+        showlegend: true
+    };
+    
+    const sma20Trace = {
+        x: priceData.dates,
+        y: priceData.sma_20,
+        name: 'SMA 20',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#DD6B20', width: 2, dash: 'dot' },
+        xaxis: 'x',
+        yaxis: 'y',
+        showlegend: true
+    };
+    
+    const sma50Trace = {
+        x: priceData.dates,
+        y: priceData.sma_50,
+        name: 'SMA 50',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#805AD5', width: 2, dash: 'dash' },
+        xaxis: 'x',
+        yaxis: 'y',
+        showlegend: true
+    };
+    
+    // Volume Chart (Middle - 25% height)
+    const volumeColors = timeseriesData.close.map((close, i) => 
+        close < timeseriesData.open[i] ? '#E53E3E' : '#38A169'
+    );
+    
+    const volumeTrace = {
+        x: timeseriesData.dates,
+        y: timeseriesData.volume,
+        name: 'Volume',
+        type: 'bar',
+        marker: { color: volumeColors, opacity: 0.7 },
+        xaxis: 'x2',
+        yaxis: 'y2',
+        showlegend: false
+    };
+    
+    // RSI Chart (Bottom - 25% height)
+    const rsiTrace = {
+        x: rsiData.dates,
+        y: rsiData.rsi,
+        name: 'RSI',
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#3182CE', width: 2.5 },
+        fill: 'tozeroy',
+        fillcolor: 'rgba(49, 130, 206, 0.08)',
+        xaxis: 'x3',
+        yaxis: 'y3',
+        showlegend: false
+    };
+    
+    // Add all traces
+    fig.data = [priceTrace, sma20Trace, sma50Trace, volumeTrace, rsiTrace];
+    
+    // Configure axes
+    fig.layout.xaxis = {
+        title: { text: 'Date', font: { family: 'Inter, sans-serif', size: 12, color: '#718096' } },
+        gridcolor: '#E2E8F0',
+        showgrid: true,
+        domain: [0, 1],
+        anchor: 'y'
+    };
+    
+    // Configure axes with more spacing between charts
+    // Price Chart (Top) - 40% of space, starting at 60%
+    fig.layout.yaxis = {
+        title: { text: 'Prix ($)', font: { family: 'Inter, sans-serif', size: 12, color: '#718096' } },
+        gridcolor: '#E2E8F0',
+        showgrid: true,
+        domain: [0.60, 1.0]  // 40% height, with gap at bottom
+    };
+    
+    // Volume Chart (Middle) - 25% of space, starting at 32%, gap of 3% above
+    fig.layout.xaxis2 = {
+        title: { text: 'Date', font: { family: 'Inter, sans-serif', size: 12, color: '#718096' } },
+        gridcolor: '#E2E8F0',
+        showgrid: true,
+        domain: [0, 1],
+        anchor: 'y2'
+    };
+    
+    fig.layout.yaxis2 = {
+        title: { text: 'Volume', font: { family: 'Inter, sans-serif', size: 12, color: '#718096' } },
+        gridcolor: '#E2E8F0',
+        showgrid: true,
+        domain: [0.32, 0.57]  // 25% height, with gaps above and below
+    };
+    
+    // RSI Chart (Bottom) - 25% of space, starting at 0%, gap of 2% above
+    fig.layout.xaxis3 = {
+        title: { text: 'Date', font: { family: 'Inter, sans-serif', size: 12, color: '#718096' } },
+        gridcolor: '#E2E8F0',
+        showgrid: true,
+        domain: [0, 1],
+        anchor: 'y3'
+    };
+    
+    fig.layout.yaxis3 = {
+        title: { text: 'RSI', font: { family: 'Inter, sans-serif', size: 12, color: '#718096' } },
+        gridcolor: '#E2E8F0',
+        showgrid: true,
+        range: [0, 100],
+        domain: [0.0, 0.25]  // 25% height, with gap at top
+    };
+    
+    // Add RSI reference lines
+    fig.layout.shapes = [
+        {
+            type: 'line',
+            xref: 'x3',
+            yref: 'y3',
+            x0: rsiData.dates[0],
+            x1: rsiData.dates[rsiData.dates.length - 1],
+            y0: 70,
+            y1: 70,
+            line: { color: '#E53E3E', width: 2, dash: 'dash' }
+        },
+        {
+            type: 'line',
+            xref: 'x3',
+            yref: 'y3',
+            x0: rsiData.dates[0],
+            x1: rsiData.dates[rsiData.dates.length - 1],
+            y0: 30,
+            y1: 30,
+            line: { color: '#38A169', width: 2, dash: 'dash' }
+        },
+        {
+            type: 'line',
+            xref: 'x3',
+            yref: 'y3',
+            x0: rsiData.dates[0],
+            x1: rsiData.dates[rsiData.dates.length - 1],
+            y0: 50,
+            y1: 50,
+            line: { color: '#94a3b8', width: 1, dash: 'dot' },
+            opacity: 0.5
+        }
+    ];
+    
+    fig.layout.annotations = [
+        {
+            x: rsiData.dates[rsiData.dates.length - 1],
+            y: 70,
+            text: 'Surachat (70)',
+            showarrow: false,
+            xanchor: 'right',
+            xref: 'x3',
+            yref: 'y3',
+            font: { color: '#E53E3E', size: 10 }
+        },
+        {
+            x: rsiData.dates[rsiData.dates.length - 1],
+            y: 30,
+            text: 'Survente (30)',
+            showarrow: false,
+            xanchor: 'right',
+            xref: 'x3',
+            yref: 'y3',
+            font: { color: '#38A169', size: 10 }
+        }
+    ];
+    
+    Plotly.newPlot('overview-chart-plot', fig.data, fig.layout, {
+        responsive: true,
+        displayModeBar: true,
+        modeBarButtonsToRemove: ['pan2d', 'lasso2d']
+    });
+}
+
+function showChartTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.chart-tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Remove active class from all buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById(`${tabName}-chart`).classList.add('active');
+    
+    // Add active class to clicked button
+    event.target.classList.add('active');
+}
+
+function setTicker(symbol) {
+    document.getElementById('ticker-input').value = symbol;
+}
+
+async function analyzeTicker() {
+    const ticker = document.getElementById('ticker-input').value.toUpperCase();
+    if (!ticker) {
+        alert('Veuillez entrer un symbole boursier');
+        return;
+    }
+    
+    const statusDiv = document.getElementById('analysis-status');
+    statusDiv.textContent = 'Initialisation en cours...';
+    statusDiv.style.color = '#3182CE';
+    
+    try {
+        // Set ticker in session and initialize RAG
+        const response = await fetch('/api/set-ticker', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                ticker: ticker,
+                initialize_rag: true
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (data.rag_initialized) {
+                statusDiv.textContent = '✓ Système initialisé avec succès';
+                statusDiv.style.color = '#38A169';
+            } else if (data.warning) {
+                statusDiv.textContent = '⚠ ' + data.warning;
+                statusDiv.style.color = '#DD6B20';
+            } else {
+                statusDiv.textContent = '✓ Ticker défini';
+                statusDiv.style.color = '#38A169';
+            }
+            
+            // Update ticker display immediately
+            document.getElementById('ticker-display').textContent = ticker;
+            
+            // Reload page after a short delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            statusDiv.textContent = '✗ Erreur: ' + (data.error || 'Erreur inconnue');
+            statusDiv.style.color = '#E53E3E';
+        }
+    } catch (error) {
+        statusDiv.textContent = '✗ Erreur de connexion';
+        statusDiv.style.color = '#E53E3E';
+        console.error('Error:', error);
+    }
+}
+
+async function saveConfig() {
+    const geminiKey = document.getElementById('gemini-key').value;
+    const alphaKey = document.getElementById('alpha-key').value;
+    
+    await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            gemini_key: geminiKey,
+            alpha_key: alphaKey
+        })
+    });
+    
+    alert('Configuration sauvegardée');
+}
+
+function downloadReport() {
+    alert('Fonctionnalité de téléchargement à venir');
+}
+
+// Store original data for filtering
+let originalPriceData = null;
+let originalRsiData = null;
+let originalTimeseriesData = null;
+
+function applyFilter() {
+    const timeframe = document.getElementById('timeframe-filter').value;
+    
+    // Show loading state
+    const btn = event.target;
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Application...';
+    
+    // Use stored original data if available, otherwise reload
+    if (originalPriceData && originalRsiData && originalTimeseriesData) {
+        // Filter existing data
+        let filteredPriceData = filterDataByTimeframe(originalPriceData, timeframe);
+        let filteredRsiData = filterDataByTimeframe(originalRsiData, timeframe);
+        let filteredTimeseriesData = filterDataByTimeframe(originalTimeseriesData, timeframe);
+        
+        // Update charts with filtered data
+        createPriceChart(filteredPriceData);
+        createVolumeChart(filteredTimeseriesData);
+        createRSIChart(filteredRsiData);
+        createOverviewChart(filteredPriceData, filteredTimeseriesData, filteredRsiData);
+        
+        btn.disabled = false;
+        btn.textContent = originalText;
+    } else {
+        // Reload charts with new timeframe
+        const ticker = '{{ ticker or "AAPL" }}';
+        if (ticker) {
+            loadCharts(ticker, timeframe).then(() => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }).catch(() => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            });
+        } else {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
+}
+
+async function loadCharts(ticker, timeframe = 'all') {
+    try {
+        const [priceData, rsiData, timeseriesData] = await Promise.all([
+            fetch(`/api/chart/price/${ticker}`).then(r => r.json()),
+            fetch(`/api/chart/rsi/${ticker}`).then(r => r.json()),
+            fetch(`/api/timeseries/${ticker}`).then(r => r.json())
+        ]);
+        
+        // Store original data for filtering
+        originalPriceData = priceData;
+        originalRsiData = rsiData;
+        originalTimeseriesData = timeseriesData;
+        
+        // Filter data based on timeframe
+        let filteredPriceData = filterDataByTimeframe(priceData, timeframe);
+        let filteredRsiData = filterDataByTimeframe(rsiData, timeframe);
+        let filteredTimeseriesData = filterDataByTimeframe(timeseriesData, timeframe);
+        
+        // Create price chart
+        createPriceChart(filteredPriceData);
+        
+        // Create volume chart
+        createVolumeChart(filteredTimeseriesData);
+        
+        // Create RSI chart
+        createRSIChart(filteredRsiData);
+        
+        // Create overview chart
+        createOverviewChart(filteredPriceData, filteredTimeseriesData, filteredRsiData);
+    } catch (error) {
+        console.error('Error loading charts:', error);
+        throw error;
+    }
+}
+
+function filterDataByTimeframe(data, timeframe) {
+    if (!data || !data.dates || data.dates.length === 0) {
+        return data;
+    }
+    
+    if (timeframe === 'all') {
+        return data;
+    }
+    
+    const days = parseInt(timeframe);
+    if (isNaN(days) || days <= 0) {
+        return data;
+    }
+    
+    // Create a deep copy to avoid modifying original
+    const filtered = JSON.parse(JSON.stringify(data));
+    
+    if (filtered.dates && filtered.dates.length > days) {
+        const startIndex = filtered.dates.length - days;
+        filtered.dates = filtered.dates.slice(startIndex);
+        
+        // Filter all arrays that have the same length as dates
+        Object.keys(filtered).forEach(key => {
+            if (key !== 'dates' && Array.isArray(filtered[key]) && filtered[key].length === data.dates.length) {
+                filtered[key] = filtered[key].slice(startIndex);
+            }
+        });
+    }
+    
+    return filtered;
+}
+
+function toggleDescription(descId) {
+    const desc = document.getElementById(descId);
+    if (desc.style.display === 'none') {
+        desc.style.display = 'block';
+    } else {
+        desc.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}
+

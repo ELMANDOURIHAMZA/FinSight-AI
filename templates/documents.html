@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block title %}Explorateur de Documents - FinSight AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Explorateur de Documents</h1>
+        <p class="page-subtitle">Explorez et analysez les rapports SEC 10-K</p>
+    </div>
+    <div class="header-actions">
+        <button class="btn-secondary" onclick="downloadFromSEC()">
+            📥 Télécharger depuis SEC
+        </button>
+    </div>
+</div>
+
+<!-- Upload Section -->
+<div class="upload-card">
+    <div class="upload-header">
+        <div class="upload-icon">📤</div>
+        <div>
+            <h3>Ajouter un Document</h3>
+            <p>Téléchargez un rapport 10-K au format HTML, TXT ou PDF</p>
+        </div>
+    </div>
+    
+    <div class="upload-area" id="upload-area">
+        <input type="file" id="file-upload" accept=".html,.htm,.txt,.pdf" style="display: none;" onchange="handleFileSelect(event)">
+        <div class="upload-content" onclick="document.getElementById('file-upload').click()">
+            <div class="upload-icon-large">📄</div>
+            <h4>Glissez-déposez votre fichier ici</h4>
+            <p>ou cliquez pour sélectionner</p>
+            <div class="upload-formats">
+                <span class="format-badge">HTML</span>
+                <span class="format-badge">TXT</span>
+                <span class="format-badge">PDF</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="upload-actions">
+        <button onclick="document.getElementById('file-upload').click()" class="btn-primary">
+            📁 Sélectionner un fichier
+        </button>
+        <button onclick="downloadFromSEC()" class="btn-secondary">
+            🌐 Télécharger depuis SEC.gov
+        </button>
+    </div>
+</div>
+
+<!-- Document Info -->
+<div id="document-info" class="document-info-card" style="display: none;">
+    <div class="document-info-header">
+        <div>
+            <h3 id="document-title">Document Chargé</h3>
+            <p id="document-meta" class="document-meta"></p>
+        </div>
+        <button onclick="clearDocument()" class="btn-icon-small" title="Effacer le document">
+            ✕
+        </button>
+    </div>
+    <div id="document-stats" class="document-stats">
+        <!-- Stats will be loaded here -->
+    </div>
+</div>
+
+<!-- Document Sections -->
+<div id="document-sections" class="document-sections" style="display: none;">
+    <div class="sections-header">
+        <h3>Sections du Document</h3>
+        <div class="sections-controls">
+            <input type="text" id="section-search" placeholder="Rechercher une section..." class="search-input">
+            <button onclick="expandAll()" class="btn-small">Tout développer</button>
+            <button onclick="collapseAll()" class="btn-small">Tout réduire</button>
+        </div>
+    </div>
+    
+    <div id="sections-list" class="sections-list">
+        <!-- Sections will be loaded here -->
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Show loading state
+    const uploadArea = document.getElementById('upload-area');
+    const originalContent = uploadArea.querySelector('.upload-content').innerHTML;
+    uploadArea.querySelector('.upload-content').innerHTML = '<div class="upload-icon-large">⏳</div><h4>Upload en cours...</h4>';
+    
+    try {
+        // Upload file to server
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await fetch('/api/documents/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.data) {
+            // Process the uploaded document
+            processDownloadedDocument(data.data);
+            alert('✅ Document uploadé avec succès !');
+        } else {
+            alert(`❌ Erreur lors de l'upload: ${data.error || 'Erreur inconnue'}`);
+        }
+    } catch (error) {
+        // Fallback to client-side processing
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            processFile(file.name, e.target.result);
+        };
+        
+        if (file.type === 'text/html' || file.name.endsWith('.html') || file.name.endsWith('.htm')) {
+            reader.readAsText(file);
+        } else if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+            reader.readAsText(file);
+        } else {
+            alert('Format de fichier non supporté. Veuillez utiliser HTML, TXT ou PDF.');
+            uploadArea.querySelector('.upload-content').innerHTML = originalContent;
+        }
+    } finally {
+        // Restore upload area if needed
+        if (uploadArea.querySelector('.upload-content').innerHTML.includes('⏳')) {
+            uploadArea.querySelector('.upload-content').innerHTML = originalContent;
+        }
+    }
+}
+
+function processFile(filename, content) {
+    // Show document info
+    document.getElementById('document-info').style.display = 'block';
+    document.getElementById('document-sections').style.display = 'block';
+    document.getElementById('empty-state').style.display = 'none';
+    
+    // Update document info
+    document.getElementById('document-title').textContent = filename;
+    document.getElementById('document-meta').textContent = `Taille: ${formatFileSize(content.length)} caractères`;
+    
+    // Parse and display sections (simplified)
+    const sections = parseDocument(content);
+    displaySections(sections);
+}
+
+function parseDocument(content) {
+    // Simple parsing - in production, use proper HTML parser
+    const sections = {};
+    const lines = content.split('\n');
+    let currentSection = 'Document Complet';
+    let sectionContent = [];
+    
+    for (let line of lines) {
+        if (line.match(/^Item\s+\d+[A-Z]?/i) || line.match(/^Section\s+\d+/i)) {
+            if (sectionContent.length > 0) {
+                sections[currentSection] = sectionContent.join('\n');
+            }
+            currentSection = line.trim();
+            sectionContent = [];
+        } else {
+            sectionContent.push(line);
+        }
+    }
+    
+    if (sectionContent.length > 0) {
+        sections[currentSection] = sectionContent.join('\n');
+    }
+    
+    if (Object.keys(sections).length === 0) {
+        sections['Document Complet'] = content.substring(0, 10000); // Limit to first 10k chars
+    }
+    
+    return sections;
+}
+
+function displaySections(sections) {
+    const container = document.getElementById('sections-list');
+    container.innerHTML = '';
+    
+    // Update stats
+    const totalLength = Object.values(sections).reduce((sum, text) => sum + text.length, 0);
+    document.getElementById('document-stats').innerHTML = `
+        <div class="stat-item">
+            <span class="stat-label">Sections</span>
+            <span class="stat-value">${Object.keys(sections).length}</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Longueur totale</span>
+            <span class="stat-value">${totalLength.toLocaleString()} caractères</span>
+        </div>
+    `;
+    
+    for (const [sectionName, sectionText] of Object.entries(sections)) {
+        const sectionDiv = document.createElement('div');
+        sectionDiv.className = 'document-section';
+        sectionDiv.innerHTML = `
+            <div class="section-header" onclick="toggleSection(this)">
+                <span class="section-icon">📑</span>
+                <span class="section-name">${escapeHtml(sectionName)}</span>
+                <span class="section-toggle">▼</span>
+                <span class="section-length">${sectionText.length.toLocaleString()} caractères</span>
+            </div>
+            <div class="section-content">
+                <pre class="section-text">${escapeHtml(sectionText.substring(0, 5000))}${sectionText.length > 5000 ? '\n\n... (contenu tronqué)' : ''}</pre>
+            </div>
+        `;
+        container.appendChild(sectionDiv);
+    }
+}
+
+function toggleSection(header) {
+    const section = header.parentElement;
+    const content = section.querySelector('.section-content');
+    const toggle = header.querySelector('.section-toggle');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        toggle.textContent = '▼';
+    } else {
+        content.style.display = 'none';
+        toggle.textContent = '▶';
+    }
+}
+
+function expandAll() {
+    document.querySelectorAll('.section-content').forEach(content => {
+        content.style.display = 'block';
+    });
+    document.querySelectorAll('.section-toggle').forEach(toggle => {
+        toggle.textContent = '▼';
+    });
+}
+
+function collapseAll() {
+    document.querySelectorAll('.section-content').forEach(content => {
+        content.style.display = 'none';
+    });
+    document.querySelectorAll('.section-toggle').forEach(toggle => {
+        toggle.textContent = '▶';
+    });
+}
+
+function clearDocument() {
+    if (confirm('Voulez-vous effacer le document actuel ?')) {
+        document.getElementById('document-info').style.display = 'none';
+        document.getElementById('document-sections').style.display = 'none';
+        document.getElementById('file-upload').value = '';
+    }
+}
+
+async function downloadFromSEC() {
+    const ticker = '{{ ticker or "" }}';
+    if (!ticker) {
+        alert('Veuillez d\'abord sélectionner un symbole boursier dans la sidebar');
+        return;
+    }
+    
+    // Show loading state
+    const btn = event?.target || document.querySelector('.btn-secondary');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ Téléchargement en cours...';
+    
+    try {
+        const response = await fetch(`/api/documents/fetch_sec/${ticker}`);
+        const data = await response.json();
+        
+        if (response.ok && data.data) {
+            // Process the downloaded document
+            processDownloadedDocument(data.data);
+            alert(`✅ Rapport 10-K téléchargé avec succès pour ${ticker} !`);
+        } else {
+            alert(`❌ Erreur: ${data.error || data.message || 'Impossible de télécharger le rapport'}\n\n💡 Vous pouvez télécharger le fichier manuellement depuis SEC.gov et l'uploader ici.`);
+            // Open SEC.gov as fallback
+            window.open(`https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${ticker}&type=10-K&dateb=&owner=exclude&count=1`, '_blank');
+        }
+    } catch (error) {
+        alert(`❌ Erreur de connexion: ${error.message}\n\n💡 Vous pouvez télécharger le fichier manuellement depuis SEC.gov et l'uploader ici.`);
+        window.open(`https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${ticker}&type=10-K&dateb=&owner=exclude&count=1`, '_blank');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
+}
+
+function processDownloadedDocument(reportData) {
+    // Show document info
+    document.getElementById('document-info').style.display = 'block';
+    document.getElementById('document-sections').style.display = 'block';
+    
+    // Update document info
+    const sections = reportData.sections || {};
+    const sectionCount = Object.keys(sections).length;
+    const totalLength = Object.values(sections).reduce((sum, text) => sum + (typeof text === 'string' ? text.length : 0), 0);
+    
+    document.getElementById('document-title').textContent = `Rapport 10-K - ${'{{ ticker }}'}`;
+    document.getElementById('document-meta').textContent = `Téléchargé depuis SEC EDGAR`;
+    
+    // Update stats
+    document.getElementById('document-stats').innerHTML = `
+        <div class="stat-item">
+            <span class="stat-label">Sections</span>
+            <span class="stat-value">${sectionCount}</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Longueur totale</span>
+            <span class="stat-value">${totalLength.toLocaleString()} caractères</span>
+        </div>
+    `;
+    
+    // Display sections
+    displaySections(sections);
+    
+    // Store in session for RAG
+    fetch('/api/documents/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ report_data: reportData })
+    }).catch(err => console.error('Error storing document:', err));
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Drag and drop
+const uploadArea = document.getElementById('upload-area');
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('drag-over');
+});
+
+uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('drag-over');
+});
+
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+        const input = document.getElementById('file-upload');
+        input.files = e.dataTransfer.files;
+        handleFileSelect({ target: input });
+    }
+});
+</script>
+{% endblock %}
+

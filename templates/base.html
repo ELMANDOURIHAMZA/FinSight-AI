@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FinSight AI - Agent Financier Autonome{% endblock %}</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                FinSight AI
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('dashboard.dashboard') }}" class="sidebar-nav-item {% if request.endpoint == 'dashboard.dashboard' %}active{% endif %}">
+                    📊 Dashboard Marché
+                </a>
+                <a href="{{ url_for('dashboard.documents') }}" class="sidebar-nav-item {% if request.endpoint == 'dashboard.documents' %}active{% endif %}">
+                    📄 Explorateur Documents
+                </a>
+            </nav>
+            
+            <div class="sidebar-support">
+                <h3 class="sidebar-section-title">Support</h3>
+                <a href="#" class="sidebar-nav-item">💡 Guide de Démarrage</a>
+                <a href="#" class="sidebar-nav-item">⚙️ Paramètres</a>
+            </div>
+            
+            <div class="sidebar-config">
+                <h3 class="sidebar-section-title">Configuration</h3>
+                <div class="config-form">
+                    <label>🔵 Gemini API Key</label>
+                    <input type="password" id="gemini-key" placeholder="AIza..." class="config-input">
+                    
+                    <label>📊 Alpha Vantage API Key</label>
+                    <input type="password" id="alpha-key" placeholder="Votre clé..." class="config-input">
+                    
+                    <button onclick="saveConfig()" class="btn-primary">Sauvegarder</button>
+                </div>
+                
+                <div class="ticker-input-section">
+                    <label>📈 Symbole Boursier</label>
+                    <input type="text" id="ticker-input" value="{{ ticker or 'AAPL' }}" placeholder="AAPL, MSFT..." class="config-input">
+                    <div class="quick-tickers">
+                        <button onclick="setTicker('AAPL')" class="btn-quick">AAPL</button>
+                        <button onclick="setTicker('MSFT')" class="btn-quick">MSFT</button>
+                        <button onclick="setTicker('GOOGL')" class="btn-quick">GOOGL</button>
+                        <button onclick="setTicker('TSLA')" class="btn-quick">TSLA</button>
+                    </div>
+                    <button onclick="analyzeTicker()" class="btn-primary btn-analyze">🚀 Lancer l'Analyse</button>
+                    <div id="analysis-status" style="margin-top: 0.5rem; font-size: 0.75rem; color: #718096;"></div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    
+    <!-- Chatbot Widget -->
+    <div id="chatbot-widget" class="chatbot-widget">
+        <div id="chatbot-button" class="chatbot-button" onclick="toggleChatbot()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2ZM20 16H6L4 18V4H20V16Z" fill="currentColor"/>
+                <path d="M7 9H17V11H7V9ZM7 12H14V14H7V12Z" fill="currentColor"/>
+            </svg>
+            <span class="chatbot-badge" id="chatbot-badge" style="display: none;">1</span>
+        </div>
+        
+        <div id="chatbot-window" class="chatbot-window" style="display: none;">
+            <div class="chatbot-header">
+                <div class="chatbot-header-content">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2ZM20 16H6L4 18V4H20V16Z" fill="currentColor"/>
+                    </svg>
+                    <span>Assistant Financier</span>
+                </div>
+                <button class="chatbot-close" onclick="toggleChatbot()">×</button>
+            </div>
+            
+            <div class="chatbot-messages" id="chatbot-messages">
+                <div class="chatbot-welcome">
+                    <p><strong>👋 Bonjour !</strong></p>
+                    <p>Je suis votre assistant financier IA. Posez-moi des questions sur les entreprises, leurs rapports 10-K, ou les données de marché.</p>
+                    <div class="chatbot-examples">
+                        <p><strong>Exemples de questions :</strong></p>
+                        <button class="example-btn" onclick="useExample('Quelle est la stratégie de croissance de cette entreprise ?')">Quelle est la stratégie de croissance de cette entreprise ?</button>
+                        <button class="example-btn" onclick="useExample('Quels sont les principaux risques identifiés dans le rapport 10-K ?')">Quels sont les principaux risques identifiés dans le rapport 10-K ?</button>
+                        <button class="example-btn" onclick="useExample('Comparez les revenus de cette entreprise avec ceux de l\'année précédente')">Comparez les revenus de cette entreprise avec ceux de l'année précédente</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chatbot-input-container">
+                <textarea id="chatbot-input" class="chatbot-input" placeholder="Tapez votre question..." rows="1" onkeydown="handleChatbotKeyPress(event)"></textarea>
+                <button id="chatbot-send" class="chatbot-send" onclick="sendChatbotMessage()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="currentColor"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
+
